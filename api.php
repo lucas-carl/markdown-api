@@ -7,7 +7,7 @@ $app->get('/', function (Request $request, Response $response) {
 });
 
 $app->get('/files', function (Request $request, Response $response) {
-	$q = $this->db->prepare('SELECT * FROM files');
+	$q = $this->db->prepare('SELECT * FROM files WHERE not_deleted = 1');
 	$q->execute();
 	return $response->withJson($q->fetchAll(PDO::FETCH_CLASS));
 });
@@ -32,4 +32,23 @@ $app->get('/files/{id}', function (Request $request, Response $response, $args) 
 	]);
 
 	return $response->withJson($q->fetchAll(PDO::FETCH_CLASS));
+});
+
+$app->delete('/files/{id}', function (Request $request, Response $response, $args) {
+	$q = $this->db->prepare('UPDATE files SET deleted_at = :now, not_deleted = 0 WHERE id = :id');
+	$q->execute([
+		':id' => $args['id'],
+		':now' => date('Y-m-d H:i:s')
+	]);
+
+	return $response->withStatus(204);
+});
+
+$app->post('/files/{id}/restore', function (Request $request, Response $response, $args) {
+	$q = $this->db->prepare('UPDATE files SET deleted_at = null, not_deleted = 1 WHERE id = :id');
+	$q->execute([
+		':id' => $args['id']
+	]);
+
+	return $response->withStatus(204);
 });
