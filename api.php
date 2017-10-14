@@ -74,3 +74,20 @@ $app->post('/files/{id}/restore', function (Request $request, Response $response
 
 	return $response->withStatus(204);
 });
+
+$app->post('/auth/login', function (Request $request, Response $response) {
+	$data = $request->getParsedBody();
+
+	$q = $this->db->prepare('SELECT * FROM users WHERE email = :email');
+	$q->execute([
+		':email' => $data['email']
+	]);
+
+	$user = $q->fetchAll(PDO::FETCH_CLASS)[0];
+
+	if ($user && password_verify($data['password'], $user->password)) {
+		return $response->withJson($user);
+	}
+
+	return $response->withStatus(401, 'Bad credentials');
+});
