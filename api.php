@@ -18,14 +18,21 @@ $app->get('/files', function (Request $request, Response $response) {
 $app->post('/files', function (Request $request, Response $response) {
 	$data = $request->getParsedBody();
 
-	$q = $this->db->prepare('INSERT INTO files (id, title, user_id) VALUES (:id, :title, :user_id)');
+	$id = md5(uniqid($data['title'] . $data['user_id'], true));
+
+	$q = $this->db->prepare('INSERT INTO files (id, title, user_id, content) VALUES (:id, :title, :user_id, "")');
 	$q->execute([
-		':id' => $data['id'],
+		':id' => $id,
 		':title' => $data['title'],
 		':user_id' => $data['user_id']
 	]);
 
-	return $response->withJson($data);
+	$q = $this->db->prepare('SELECT * FROM files WHERE id = :id');
+	$q->execute([
+		':id' => $id
+	]);
+
+	return $response->withJson($q->fetchAll(PDO::FETCH_CLASS)[0]);
 });
 
 $app->get('/files/{id}', function (Request $request, Response $response, $args) {
