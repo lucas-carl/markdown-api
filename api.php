@@ -1,12 +1,15 @@
 <?php
 
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: token');
 header('Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS');
 
-$app->add(function ($request, $response, $next) {
+$authenticated = function (Request $request, Response $response, $next) {
 	if ($request->isOptions()) {
-		return $next($requet, $response);
+		return $next($request, $response);
 	}
 
 	$token = $request->getHeaderLine('Token');
@@ -32,7 +35,7 @@ $app->add(function ($request, $response, $next) {
 	]);
 
 	return $next($request->withAttribute('user', $user->email), $response);
-});
+};
 
 $app->get('/', function ($request, $response) {
   return "Markdown Journal API v1.0.0";
@@ -46,22 +49,24 @@ $app->get('/files', function ($request, $response) {
 
 	$files = $q->fetchAll(PDO::FETCH_CLASS);
 
-	if (! $files) {
+	if (!$files) {
 		return $response->withStatus(404, 'Not found');
 	}
 
 	return $response->withJson($files);
-});
+})->add($authenticated);
 
 $app->post('/files', function ($request, $response) {
-	$id = md5(uniqid($request->getAttribute('title') . $request->getAttribute('user'), true));
+	$data = $request->getParsedBody();
+
+	$id = md5(uniqid($data['title'] . $request->getAttribute('user'), true));
 
 	$i = $this->db->prepare('INSERT INTO files (id, title, user_id, content) VALUES (:id, :title, :user, "")');
 	$i->execute([
 		':id' => $id,
-		':title' => $request->getAttribute('title'),
+		':title' => $data['title'],
 		':user' => $request->getAttribute('user')
-	]);
+	])->add($authenticated);
 
 	$q = $this->db->prepare('SELECT * FROM files WHERE id = :id');
 	$q->execute([
@@ -69,7 +74,7 @@ $app->post('/files', function ($request, $response) {
 	]);
 
 	return $response->withJson($q->fetchAll(PDO::FETCH_CLASS)[0]);
-});
+})->add($authenticated);
 
 $app->get('/files/{id}', function ($request, $response, $args) {
 	$q = $this->db->prepare('SELECT * FROM files WHERE user_id = :user AND id = :id');
@@ -85,15 +90,17 @@ $app->get('/files/{id}', function ($request, $response, $args) {
 	}
 
 	return $response->withJson($file);
-});
+})->add($authenticated);
 
 $app->put('/files/{id}', function ($request, $response, $args) {
+	$data = $request->getParsedBody();
+
 	$u = $this->db->prepare('UPDATE files SET title = :title, content = :content, folder_id = :folder_id WHERE user_id = :user AND id = :id');
 	$u->execute([
 		':id' => $args['id'],
-		':title' => $request->getAttribute('title'),
-		':content' => $request->getAttribute('content'),
-		':folder_id' => $request->getAttribute('folder_id'),
+		':title' => $data['title'],
+		':content' => $data['content'],
+		':folder_id' => $data['folder_id'],
 		':user' => $request->getAttribute('user')
 	]);
 
@@ -103,7 +110,7 @@ $app->put('/files/{id}', function ($request, $response, $args) {
 	]);
 
 	return $response->withJson($q->fetchAll(PDO::FETCH_CLASS)[0]);
-});
+})->add($authenticated);
 
 $app->delete('/files/{id}', function ($request, $response, $args) {
 	$u = $this->db->prepare('UPDATE files SET deleted_at = :now, not_deleted = 0 WHERE user_id = :user AND id = :id');
@@ -114,7 +121,7 @@ $app->delete('/files/{id}', function ($request, $response, $args) {
 	]);
 
 	return $response->withStatus(204);
-});
+})->add($authenticated);
 
 $app->post('/files/{id}/restore', function ($request, $response, $args) {
 	$u = $this->db->prepare('UPDATE files SET deleted_at = null, not_deleted = 1 WHERE id = :id');
@@ -123,41 +130,43 @@ $app->post('/files/{id}/restore', function ($request, $response, $args) {
 	]);
 
 	return $response->withStatus(204);
-});
+})->add($authenticated);
 
 $app->post('/user/login', function ($request, $response) {
-	$email = $request->getAttribute('email');
+	$data = $request->getParsedBody();
 
 	$q = $this->db->prepare('SELECT * FROM users WHERE email = :email');
 	$q->execute([
-		':email' => $email
+		':email' => $data['email']
 	]);
 
 	$user = $q->fetchAll(PDO::FETCH_CLASS)[0];
 
-	if ($user && password_verify($request->getAttribute('password'), $user->password)) {
+	if ($user && password_verify($data['password'], $user->password)) {
 		$token = bin2hex(openssl_random_pseudo_bytes(8));
 
 		$token_expire = date('Y-m-d H:i:s', strtotime('+8 hours'));
 
 		$u = $this->db->prepare('UPDATE users SET token = :token, token_expire = :token_expire WHERE email = :email');
 		$u->execute([
-			':email' => $email,
+			':email' => $data['email'],
 			':token' => $token,
 			':token_expire' => $token_expire
 		]);
 
-		return $response->withJson([ 'email' => $email, 'token' => $token ]);
+		return $response->withJson([ 'email' => $data['email'], 'token' => $token ]);
 	}
 
 	return $response->withStatus(401, 'Bad credentials');
 });
 
 $app->post('/user', function ($request, $response) {
+	$data = $request->getParsedBody();
+
 	$i = $this->db->prepare('INSERT INTO users (email, password) VALUES (:email, :password)');
 	$i->execute([
-		':email' => $request->getAttribute('email'),
-		':password' => password_hash($request->getAttribute('password'), PASSWORD_DEFAULT)
+		':email' => $data['email'],
+		':password' => password_hash($data['password'], PASSWORD_DEFAULT)
 	]);
 
 	return $response->withStatus(204);
