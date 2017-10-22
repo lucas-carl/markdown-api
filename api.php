@@ -56,6 +56,21 @@ $app->get('/files', function ($request, $response) {
 	return $response->withJson($files);
 })->add($authenticated);
 
+$app->get('/files/all', function ($request, $response) {
+	$q = $this->db->prepare('SELECT * FROM files WHERE user_id = :user');
+	$q->execute([
+		':user' => $request->getAttribute('user')
+	]);
+
+	$files = $q->fetchAll(PDO::FETCH_CLASS);
+
+	if (!$files) {
+		return $response->withStatus(404, 'Not found');
+	}
+
+	return $response->withJson($files);
+})->add($authenticated);
+
 $app->post('/files', function ($request, $response) {
 	$data = $request->getParsedBody();
 
