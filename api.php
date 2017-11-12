@@ -178,10 +178,21 @@ $app->post('/user/login', function ($request, $response) {
 $app->post('/user', function ($request, $response) {
 	$data = $request->getParsedBody();
 
+	$q = $this->db->prepare('SELECT * FROM users WHERE email = :email');
+	$q->execute([
+		':email' => $data['email']
+	]);
+
+	$user = $q->fetchAll(PDO::FETCH_CLASS)[0];
+
+	if ($user) {
+		return $response->withStatus(412, 'Email already in use');
+	}
+
 	$i = $this->db->prepare('INSERT INTO users (email, password) VALUES (:email, :password)');
 	$i->execute([
 		':email' => $data['email'],
-		':password' => password_hash($data['password'], PASSWORD_DEFAULT)
+		':password' => $data['password']
 	]);
 
 	return $response->withStatus(204);
