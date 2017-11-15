@@ -81,7 +81,7 @@ $app->post('/files', function ($request, $response) {
 		':id' => $id,
 		':title' => $data['title'],
 		':user' => $request->getAttribute('user')
-	])->add($authenticated);
+	]);
 
 	$q = $this->db->prepare('SELECT * FROM files WHERE id = :id');
 	$q->execute([
