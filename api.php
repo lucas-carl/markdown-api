@@ -147,6 +147,15 @@ $app->post('/files/{id}/restore', function ($request, $response, $args) {
 	return $response->withStatus(204);
 })->add($authenticated);
 
+$app->delete('/files', function ($request, $response, $args) {
+	$u = $this->db->prepare('DELETE FROM files WHERE user_id = :user AND not_deleted = 0');
+	$u->execute([
+		':user' => $request->getAttribute('user')
+	]);
+
+	return $response->withStatus(204);
+})->add($authenticated);
+
 $app->post('/user/login', function ($request, $response) {
 	$data = $request->getParsedBody();
 
