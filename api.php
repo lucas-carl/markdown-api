@@ -156,6 +156,35 @@ $app->delete('/files', function ($request, $response, $args) {
 	return $response->withStatus(204);
 })->add($authenticated);
 
+$app->get('/folders', function ($request, $response) {
+	$f = $this->db->prepare('SELECT * FROM folders WHERE user_id = :user');
+	$f->execute([
+		':user' => $request->getAttribute('user')
+	]);
+
+	$folders = $f->fetchAll(PDO::FETCH_CLASS);
+
+	if (!$folders) {
+		return $response->withStatus(404, 'Not found');
+	}
+
+	return $response->withJson($folders);
+})->add($authenticated);
+
+$app->post('/folders', function ($request, $response) {
+	$data = $request->getParsedBody();
+
+	$id = md5(uniqid($data['title'] . $request->getAttribute('user'), true));
+
+	$i = $this->db->prepare('INSERT INTO folders (id, title) VALUES (:id, :title)');
+	$i->execute([
+		':id' => $id,
+		':title' => $data['title']
+	]);
+
+	return $response->withJson(['id' => $id]);
+})->add($authenticated);
+
 $app->post('/user/login', function ($request, $response) {
 	$data = $request->getParsedBody();
 
