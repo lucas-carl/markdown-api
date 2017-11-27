@@ -171,6 +171,19 @@ $app->get('/folders', function ($request, $response) {
 	return $response->withJson($folders);
 })->add($authenticated);
 
+$app->post('/files/{id}/move', function ($request, $response, $args) {
+	$data = $request->getParsedBody();
+
+	$u = $this->db->prepare('UPDATE files SET folder_id = :folder WHERE user_id = :user AND id = :id');
+	$u->execute([
+		':id' => $args['id'],
+		':folder' => $data['destination'] == 'null' ? null : $data['destination'],
+		':user' => $request->getAttribute('user')
+	]);
+
+	return $response->withStatus(204);
+})->add($authenticated);
+
 $app->post('/folders', function ($request, $response) {
 	$data = $request->getParsedBody();
 
