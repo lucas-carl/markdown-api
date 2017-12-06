@@ -189,13 +189,31 @@ $app->post('/folders', function ($request, $response) {
 
 	$id = md5(uniqid($data['title'] . $request->getAttribute('user'), true));
 
-	$i = $this->db->prepare('INSERT INTO folders (id, title) VALUES (:id, :title)');
+	$i = $this->db->prepare('INSERT INTO folders (id, title, user_id) VALUES (:id, :title, :user)');
 	$i->execute([
 		':id' => $id,
-		':title' => $data['title']
+		':title' => $data['title'],
+		':user' => $request->getAttribute('user')
 	]);
 
 	return $response->withJson(['id' => $id]);
+})->add($authenticated);
+
+$app->delete('/folders/{id}', function ($request, $response, $args) {
+	$d = $this->db->prepare('DELETE FROM folders WHERE user_id = :user AND id = :id');
+	$d->execute([
+		':id' => $args['id'],
+		':user' => $request->getAttribute('user')
+	]);
+
+	// remove folder_id in files contained by folder
+	$u = $this->db->prepare('UPDATE files SET folder_id = null WHERE user_id = :user AND folder_id = :id');
+	$u->execute([
+		':id' => $args['id'],
+		':user' => $request->getAttribute('user')
+	]);
+
+	return $response->withStatus(204);
 })->add($authenticated);
 
 $app->post('/user/login', function ($request, $response) {
