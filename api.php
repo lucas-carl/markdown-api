@@ -110,12 +110,26 @@ $app->get('/files/{id}', function ($request, $response, $args) {
 $app->put('/files/{id}', function ($request, $response, $args) {
 	$data = $request->getParsedBody();
 
+	$q = $this->db->prepare('SELECT * FROM files WHERE user_id = :user AND id = :id');
+	$q->execute([
+		':id' => $args['id'],
+		':user' => $request->getAttribute('user')
+	]);
+
+	$file = $q->fetchAll(PDO::FETCH_CLASS)[0];
+
+	$newFile = [
+		'title' => is_null($data['title']) ? $file->title : $data['title'],
+		'content' => is_null($data['title']) ? $file->content : $data['content'],
+		'folder_id' => is_null($data['folder_id']) ? $file->folder_id : $data['folder_id']
+	];
+
 	$u = $this->db->prepare('UPDATE files SET title = :title, content = :content, folder_id = :folder_id WHERE user_id = :user AND id = :id');
 	$u->execute([
 		':id' => $args['id'],
-		':title' => $data['title'],
-		':content' => $data['content'],
-		':folder_id' => $data['folder_id'],
+		':title' => $newFile['title'],
+		':content' => $newFile['content'],
+		':folder_id' => $newFile['folder_id'],
 		':user' => $request->getAttribute('user')
 	]);
 
