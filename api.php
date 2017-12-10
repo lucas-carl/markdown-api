@@ -119,9 +119,9 @@ $app->put('/files/{id}', function ($request, $response, $args) {
 	$file = $q->fetchAll(PDO::FETCH_CLASS)[0];
 
 	$newFile = [
-		'title' => is_null($data['title']) ? $file->title : $data['title'],
-		'content' => is_null($data['title']) ? $file->content : $data['content'],
-		'folder_id' => is_null($data['folder_id']) ? $file->folder_id : $data['folder_id']
+		'title' => is_null($data['title']) || $data['title'] == 'null' ? $file->title : $data['title'],
+		'content' => is_null($data['content']) || $data['content'] == 'null' ? $file->content : $data['content'],
+		'folder_id' => is_null($data['folder_id']) || $data['folder_id'] == 'null' ? $file->folder_id : $data['folder_id']
 	];
 
 	$u = $this->db->prepare('UPDATE files SET title = :title, content = :content, folder_id = :folder_id WHERE user_id = :user AND id = :id');
@@ -179,7 +179,7 @@ $app->get('/folders', function ($request, $response) {
 	$folders = $f->fetchAll(PDO::FETCH_CLASS);
 
 	if (!$folders) {
-		return $response->withStatus(404, 'Not found');
+		return $response->withStatus(204);
 	}
 
 	return $response->withJson($folders);
