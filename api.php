@@ -242,7 +242,6 @@ $app->post('/user/login', function ($request, $response) {
 
 	if ($user && password_verify($data['password'], $user->password)) {
 		$token = bin2hex(openssl_random_pseudo_bytes(8));
-
 		$token_expire = date('Y-m-d H:i:s', strtotime('+8 hours'));
 
 		$u = $this->db->prepare('UPDATE users SET token = :token, token_expire = :token_expire WHERE email = :email');
@@ -272,11 +271,16 @@ $app->post('/user', function ($request, $response) {
 		return $response->withStatus(412, 'Email already in use');
 	}
 
-	$i = $this->db->prepare('INSERT INTO users (email, password) VALUES (:email, :password)');
+	$token = bin2hex(openssl_random_pseudo_bytes(8));
+	$token_expire = date('Y-m-d H:i:s', strtotime('+8 hours'));
+
+	$i = $this->db->prepare('INSERT INTO users (email, password, token, token_expire) VALUES (:email, :password, :token, :token_expire)');
 	$i->execute([
 		':email' => $data['email'],
-		':password' => $data['password']
+		':password' => $data['password'],
+		':token' => $token,
+		':token_expire' => $token_expire
 	]);
 
-	return $response->withStatus(204);
+	return $response->withJson([ 'email' => $data['email'], 'token' => $token ]);
 });
