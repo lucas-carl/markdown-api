@@ -75,12 +75,14 @@ $app->post('/files', function ($request, $response) {
 	$data = $request->getParsedBody();
 
 	$id = md5(uniqid($data['title'] . $request->getAttribute('user'), true));
+	$content = '## ' . $data['title'];
 
-	$i = $this->db->prepare('INSERT INTO files (id, title, user_id, content) VALUES (:id, :title, :user, "")');
+	$i = $this->db->prepare('INSERT INTO files (id, title, user_id, content) VALUES (:id, :title, :user, :content)');
 	$i->execute([
 		':id' => $id,
 		':title' => $data['title'],
-		':user' => $request->getAttribute('user')
+		':user' => $request->getAttribute('user'),
+		':content' => $content
 	]);
 
 	$q = $this->db->prepare('SELECT * FROM files WHERE id = :id');
