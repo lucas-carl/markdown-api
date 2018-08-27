@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Api\Models\User;
 
 require 'vendor/autoload.php';
 require 'env.php';
@@ -32,14 +31,6 @@ $app = new \Slim\App([
     'displayErrorDetails' => true
   ]
 ]);
-
-$app->get('/create', function () {
-  $user = new User();
-  $user->email = 't@test.de';
-  $user->save();
-
-  return $user;
-});
 
 require 'routes.php';
 

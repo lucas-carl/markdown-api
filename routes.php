@@ -1,5 +1,9 @@
 <?php
 
+include "app/models/File.php";
+include "app/models/Folder.php";
+include "app/models/User.php";
+
 use Api\Models\User;
 use Api\Models\File;
 use Api\Models\Folder;
